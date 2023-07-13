@@ -20,11 +20,7 @@ class LeadController
 
     public function processLeadRequest(string $method, $lead_data = []): void
     {
-        file_put_contents($this->log_path, "Input Object --------\r\n"
-            .date('Y-m-d h:i:s')."\r\n"
-            .json_encode($lead_data, JSON_PRETTY_PRINT)."\r\n"
-            .json_encode($_SERVER, JSON_PRETTY_PRINT)
-            ."\r\n---------------------\r\n".PHP_EOL, FILE_APPEND);
+        $this->log('Input Object', array_merge($lead_data));
 
         if (!$lead_data) {
             exit('Data is empty');
@@ -96,22 +92,16 @@ class LeadController
             ));
 
             if (isset($lead_data['aff_sub']) && $lead_data['aff_sub']) {
-                $url_track = 'https://tracking.tripleafindings.com/aff_lsr?transaction_id='.$lead_data['aff_sub'];
-                $res_track = $this->curlRequest("GET", $url_track);
+                $res_track = $this->curlRequest("GET", 'https://tracking.tripleafindings.com/aff_lsr?transaction_id='.$lead_data['aff_sub']);
 
-                file_put_contents($this->log_path, "Tracking Send -----------------\r\n"
-                    .date('Y-m-d h:i:s')."\r\n".$url_track."\r\n".json_encode($res_track, JSON_PRETTY_PRINT)."\r\n---------------------\r\n".PHP_EOL, FILE_APPEND);
+                $this->log('Tracking Send', array_merge($res_track));
             }
 
             $res = var_dump($add_lead);
             $lead_id = $add_lead->id;
 
+            $this->log('CRM', $add_lead);
 
-            file_put_contents($this->log_path, "CRM -----------------\r\n"
-                .date('Y-m-d h:i:s')."\r\n"."\r\n"
-                .json_encode($add_lead, JSON_PRETTY_PRINT)."\r\n---------------------\r\n".PHP_EOL, FILE_APPEND);
-
-            
             $segment_request = [
                 "userId" => $lead_data['auth'],
                 "context" => [
@@ -169,10 +159,12 @@ class LeadController
                 ]
             ];
 
-            $this->curlRequest("POST", 'https://api.segment.io/v1/identify',
+            $response = $this->curlRequest("POST", 'https://api.segment.io/v1/identify',
                 $segment_request,
                 ["Authorization: Basic QklpcWJkYmJkTkl3dkRnTkNqOGRQVXpmdjA0Y3E5bnk="]
             );
+
+            $this->log('Segment', $response);
 
             http_response_code(201);
         } else {
@@ -258,14 +250,20 @@ class LeadController
         }
         curl_close($curl);
 
+        return ($body ==null)? []: [
+            'url' => $url,
+            'headers' => $headers,
+            'body' => $body,
+            'data' => $post_data,
+            'response' => $response,
+        ];
+    }
 
-        file_put_contents($this->log_path, "Segment -------------\r\n"
-            .date('Y-m-d h:i:s')."\r\n".$url."\r\n".json_encode($post_data, JSON_PRETTY_PRINT)
-            ."\r\n".json_encode($body, JSON_PRETTY_PRINT)
-            ."\r\n".json_encode($response, JSON_PRETTY_PRINT)
-            ."\r\n---------------------\r\n".PHP_EOL, FILE_APPEND);
-
-        return ($body ==null)? []: json_decode($body, true);
+    private function log($name, $data) {
+        file_put_contents($this->log_path, "$name\r\n-----------------------------------\r\n"
+            .date('Y-m-d h:i:s')
+            ."\r\n".stripslashes(json_encode($data, JSON_PRETTY_PRINT))
+            ."\r\n-----------------------------------\r\n".PHP_EOL, FILE_APPEND);
     }
 }
 
