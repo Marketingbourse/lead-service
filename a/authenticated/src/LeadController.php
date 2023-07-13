@@ -32,12 +32,6 @@ class LeadController
             http_response_code(401);
             header("Please provide valid token");
         }
-        //if (array_key_exists('token', $lead_data) && $this->isValidToken($this->extractToken($lead_data['token']))) {
-        //    $this -> addLeadToSuiteCrm($lead_data, $method);
-        //} else {
-        //    http_response_code(401);
-        //    echo('please provide valid token');
-        //}
     }
 
 
@@ -55,6 +49,10 @@ class LeadController
             $nameValueList = array();
             $loginResults = $this->client->login($userAuth, $appName, $nameValueList);
             $session_id = $loginResults->id;
+
+            /*
+             * Sending to CRM
+             */
             $add_lead = $this->client->set_entry($session_id, "Leads", array(
                 array("name" => 'lead_subscription_date_c', "value" => $lead_data['date'] ?? null),
                 array("name" => 'first_name', "value" => $lead_data['first_name'] ?? null),
@@ -83,24 +81,23 @@ class LeadController
                 array("name" => 'affsub3_c', "value" => $lead_data['aff_sub3'] ?? null),
                 array("name" => 'affsub4_c', "value" => $lead_data['aff_sub4'] ?? null),
                 array("name" => 'affsub5_c', "value" => $lead_data['aff_sub5'] ?? null),
-                
-                
                 array("name" => 'transaction_id_c', "value" => $lead_data['transaction_id'] ?? null),
                 array("name" => 'aff_click_id_c', "value" => $lead_data['aff_click_id'] ?? null),
                 array("name" => 'affiliate_id_c', "value" => $lead_data['affiliate_id'] ?? null),
                 array("name" => 'offer_id_c', "value" => $lead_data['offer_id'] ?? null),
             ));
 
+            $this->log('CRM', $add_lead);
+
+            /*
+             * Sending to tracking
+             */
             if (isset($lead_data['aff_sub']) && $lead_data['aff_sub']) {
                 $res_track = $this->curlRequest("GET", 'https://tracking.tripleafindings.com/aff_lsr?transaction_id='.$lead_data['aff_sub']);
 
                 $this->log('Tracking Send', array_merge($res_track));
             }
 
-            $res = var_dump($add_lead);
-            $lead_id = $add_lead->id;
-
-            $this->log('CRM', $add_lead);
 
             $segment_request = [
                 "userId" => $lead_data['auth'],
@@ -159,6 +156,9 @@ class LeadController
                 ]
             ];
 
+            /*
+             * Sending to Segment
+             */
             $response = $this->curlRequest("POST", 'https://api.segment.io/v1/identify',
                 $segment_request,
                 ["Authorization: Basic QklpcWJkYmJkTkl3dkRnTkNqOGRQVXpmdjA0Y3E5bnk="]
