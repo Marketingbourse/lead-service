@@ -112,67 +112,68 @@ class LeadController
                 .json_encode($add_lead, JSON_PRETTY_PRINT)."\r\n---------------------\r\n".PHP_EOL, FILE_APPEND);
 
             
-$segment_request = [
-    "userId" => $lead_data['auth'],
-    "context" => [
-        "messaging_subscriptions" => [
-            [
-                "key" => $lead_data['email'],
-                "type" => "EMAIL",
-                "status" => "SUBSCRIBED"
-            ]
-        ],
-        "externalIds" => [
-            [
-                "id" => $lead_data['email'],
-                "type" => "email",
-                "collection" => "users",
-                "encoding" => "none"
-            ]
-        ],
-        "traits" => [
-            'lead_subscription_date_c' => $lead_data['date'] ?? null,
-            'first_name' => $lead_data['first_name'] ?? null,
-            'last_name' => $lead_data['last_name'] ?? null,
-            'email1' => $lead_data['email'],
-            'soi_c' => true,
-            'doi_c' => false,
-            'phone_c' => $lead_data['phone'] ?? null,
-            'vertical_c' => $lead_data['vertical'] ?? null,
-            'aff_id_c' => $lead_data['aff_id'] ?? null,
-            'sign_up_page_url_c' => $lead_data['sing_up_page_url'] ?? null,
-            'source_c' => $lead_data['source'] ?? null,
-            'ip_address_c' => $lead_data['ip_address'] ?? null,
-            'geo_c' => $lead_data['geo'] ?? null,
-            'country_c' => $lead_data['country'] ?? null,
-            'region_c' => $lead_data['region'] ?? null,
-            'province_c' => $lead_data['province'] ?? null,
-            'state_c' => $lead_data['state'] ?? null,
-            'device_c' => $lead_data['device'] ?? null,
-            'os_c' => $lead_data['os'] ?? null,
-            'browser_c' => $lead_data['browser'] ?? null,
-            'affsub_c' => $lead_data['aff_sub'] ?? null,
-            'affsub2_c' => $lead_data['aff_sub2'] ?? null,
-            'affsub3_c' => $lead_data['aff_sub3'] ?? null,
-            'affsub4_c' => $lead_data['aff_sub4'] ?? null,
-            'affsub5_c' => $lead_data['aff_sub5'] ?? null,
-            
-            'transaction_id' => $lead_data['transaction_id'] ?? null,
-            'aff_click_id' => $lead_data['aff_click_id'] ?? null,
-            'affiliate_id' => $lead_data['affiliate_id'] ?? null,
-            'offer_id' => $lead_data['offer_id'] ?? null,
-            'sub_id_1_c' => $lead_data['subid1'] ?? null,
-        ]
-    ],
-    "traits" => [
-        "email" => $lead_data['email']
-    ]
-];
+            $segment_request = [
+                "userId" => $lead_data['auth'],
+                "context" => [
+                    "messaging_subscriptions" => [
+                        [
+                            "key" => $lead_data['email'],
+                            "type" => "EMAIL",
+                            "status" => "SUBSCRIBED"
+                        ]
+                    ],
+                    "externalIds" => [
+                        [
+                            "id" => $lead_data['email'],
+                            "type" => "email",
+                            "collection" => "users",
+                            "encoding" => "none"
+                        ]
+                    ],
+                    "traits" => [
+                        'lead_subscription_date_c' => $lead_data['date'] ?? null,
+                        'first_name' => $lead_data['first_name'] ?? null,
+                        'last_name' => $lead_data['last_name'] ?? null,
+                        'email1' => $lead_data['email'],
+                        'soi_c' => true,
+                        'doi_c' => false,
+                        'phone_c' => $lead_data['phone'] ?? null,
+                        'vertical_c' => $lead_data['vertical'] ?? null,
+                        'aff_id_c' => $lead_data['aff_id'] ?? null,
+                        'sign_up_page_url_c' => $lead_data['sing_up_page_url'] ?? null,
+                        'source_c' => $lead_data['source'] ?? null,
+                        'ip_address_c' => $lead_data['ip_address'] ?? null,
+                        'geo_c' => $lead_data['geo'] ?? null,
+                        'country_c' => $lead_data['country'] ?? null,
+                        'region_c' => $lead_data['region'] ?? null,
+                        'province_c' => $lead_data['province'] ?? null,
+                        'state_c' => $lead_data['state'] ?? null,
+                        'device_c' => $lead_data['device'] ?? null,
+                        'os_c' => $lead_data['os'] ?? null,
+                        'browser_c' => $lead_data['browser'] ?? null,
+                        'affsub_c' => $lead_data['aff_sub'] ?? null,
+                        'affsub2_c' => $lead_data['aff_sub2'] ?? null,
+                        'affsub3_c' => $lead_data['aff_sub3'] ?? null,
+                        'affsub4_c' => $lead_data['aff_sub4'] ?? null,
+                        'affsub5_c' => $lead_data['aff_sub5'] ?? null,
 
-            
-            $this->curlRequest("POST", 'https://api.segment.io/v1/identify', $segment_request, []);
-            echo $lead_id;
-            
+                        'transaction_id' => $lead_data['transaction_id'] ?? null,
+                        'aff_click_id' => $lead_data['aff_click_id'] ?? null,
+                        'affiliate_id' => $lead_data['affiliate_id'] ?? null,
+                        'offer_id' => $lead_data['offer_id'] ?? null,
+                        'sub_id_1_c' => $lead_data['subid1'] ?? null,
+                    ]
+                ],
+                "traits" => [
+                    "email" => $lead_data['email']
+                ]
+            ];
+
+            $this->curlRequest("POST", 'https://api.segment.io/v1/identify',
+                $segment_request,
+                ["Authorization: Basic QklpcWJkYmJkTkl3dkRnTkNqOGRQVXpmdjA0Y3E5bnk="]
+            );
+
             http_response_code(201);
         } else {
             http_response_code(405);
@@ -202,14 +203,12 @@ $segment_request = [
         $curl = curl_init();
         if (count($headers) != 0) {
             $contentHeaders = array(
-        	"Authorization: Basic QklpcWJkYmJkTkl3dkRnTkNqOGRQVXpmdjA0Y3E5bnk=",
                 "Content-Type: application/json",
                 "cache-control: no-cache"
             );
             $headers = array_merge($headers, $contentHeaders);
         } else {
             $headers = array(
-        	"Authorization: Basic QklpcWJkYmJkTkl3dkRnTkNqOGRQVXpmdjA0Y3E5bnk=",
                 "Content-Type: application/json",
                 "cache-control: no-cache"
             );
