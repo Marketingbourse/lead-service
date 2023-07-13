@@ -1,0 +1,74 @@
+<?php
+
+$wsdl = 'https://crm.roikingdom.net/public/legacy/soap.php?wsdl'; // Replace with your SuiteCRM URL
+$username = 'apiconnector'; // Replace with your SuiteCRM username
+$password = 'v$kvQbr6+KCEh3$1PSEq^FgQX6rQ~awGB#zaQNAsSHN2WxEW?q'; // Replace with your SuiteCRM password
+$md5Password = "0ced5b0fcf46076de07579c4a0046ac6";
+// Create SOAP client
+//$client = new SoapClient($wsdl, array('trace' => 1));
+$client = new SoapClient($wsdl);
+// Authenticate
+$client->__setLocation($wsdl);
+class user_auth {
+    function user_auth($username, $password) {
+        $this->user_name = $username;
+        $this->password = md5($password);
+        $this->version = '0.1';
+    }
+}
+
+
+$user = new user_auth($username, $password);
+$params = array($user);
+
+$loginParameters = array(
+    'user_auth' => array(
+        'user_name' => $username,
+        'password' => $md5Password,
+        'version' => '0.1'
+    ),
+    'application_name' => 'Connect',
+    'name_value_list' => array()
+);
+
+//$loginResult = $client->__soapCall('login',$loginParameters);
+$loginResult = $client->__soapCall('login',$loginParameters);
+var_dump(1);
+$sessionId = $loginResult->id;
+var_dump($loginResult);
+// Search for lead based on segment_id and segment_identifier_c fields
+$searchParameters = array(
+    'session' => $sessionId,
+    'module_name' => 'Leads',
+    'query' => "(leads.segment_identifier_c = 'e24yQm4yOVFWSDE7IDIwMjMtMDctMDdUMTI6MjY6MTcrMDA6MDA7IHZYWUt4bktK')", // Replace with your segment_id and segment_identifier_c values
+    'order_by' => '',
+    'offset' => 0,
+    'select_fields' => ['id'],
+    'link_name_to_fields_array' => array(),
+    'max_results' => 1,
+    'deleted' => 0,
+    'Favorites' => false
+);
+var_dump(123);
+$searchResult = $client->__soapCall('get_entry_list', $searchParameters);
+var_dump(json_encode($searchResult));
+$lead = $searchResult->entry_list[0]->name_value_list; // Assuming only one lead is returned
+
+if (!empty($lead)) {
+    $leadId = $lead->id->value;
+    $firstName = $lead->first_name->value;
+    $lastName = $lead->last_name->value;
+
+    // Output the lead information
+    echo "Lead ID: $leadId<br>";
+    echo "First Name: $firstName<br>";
+    echo "Last Name: $lastName<br>";
+} else {
+    echo "Lead not found.";
+}
+
+// Logout
+$client->__soapCall('logout', array($sessionId));
+
+?>
+

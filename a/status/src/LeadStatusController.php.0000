@@ -1,0 +1,92 @@
+<?php
+
+$globals = $GLOBALS;
+
+class LeadStatusController
+{
+
+    private string $url = "https://crm.roikingdom.net/public/legacy/soap.php?wsdl";
+    private string $user = "apiconnector";
+    private string $password = 'v$kvQbr6+KCEh3$1PSEq^FgQX6rQ~awGB#zaQNAsSHN2WxEW?q';
+    private string $password_md5 = "0ced5b0fcf46076de07579c4a0046ac6";
+    private SoapClient $client;
+
+    public function __construct()
+    {
+    }
+
+    public function processLeadUpdateRequest(string $method, array $id_obj): void
+    {
+        file_put_contents('/home/crmds/public_html/leads.txt', json_encode($id_obj));
+        
+        if ($method == 'POST') {
+            $this->client = new SoapClient($this->url);
+            $this->client->__setLocation($this->url);
+            $userAuth = array(
+                'user_name' => $this->user,
+                'password' => $this->password_md5,
+                'version' => '0.1'
+            );
+            $appName = 'Connector';
+            $nameValueList = array();
+            $loginResults = $this->client->login($userAuth, $appName, $nameValueList);
+            $session_id = $loginResults->id;
+            
+            
+    	    file_put_contents("/home/crmds/public_html/a/status/src/authenticated.log", "#####################\r\n ".date('Y-m-d h:i:s')."\r\n".json_encode($id_obj)."\r\n".PHP_EOL, FILE_APPEND);
+                   //<
+$searchParameters = array(
+    'session' => $session_id,
+    'module_name' => 'Leads',
+    'query'=>"segment_identifier_c = '".$id_obj['id']."'", //HERE SEND segment_identifier_c
+    'order_by' => '',
+    'offset' => 0,
+    'select_fields' => ['id'],
+    'link_name_to_fields_array' => array(),
+    'max_results' => 2,
+    'deleted' => 0,
+    'Favorites' => false
+);
+$searchResult = $this->client->__soapCall('get_entry_list', $searchParameters);
+//var_dump(json_encode($searchResult));
+//$lead = $searchResult->entry_list[0]->name_value_list; // Assuming only one lead is returned
+$lead = $searchResult->entry_list[0]->name_value_list[0];
+//Here an ARRAY of arrays!!!!!! Need to parse it!
+
+//var_dump($lead->value);
+
+$leadId = false;
+if (!empty($lead)) {
+    $leadId = $lead->value;
+    // Output the lead information
+    //echo "Lead ID: $leadId<br>";
+} else {
+    //echo "Lead not found.";
+}
+//exit($leadId);
+            
+            
+            $modify_lead = $this->client->set_entry($session_id, "Leads", array(
+                array("name" => 'id', "value" => $leadId),
+                array("name" => 'doi_c', "value" => true),
+            ));
+
+            $res = $modify_lead;
+            echo var_dump($res);
+            //echo var_dump($lead_obj);
+            http_response_code(201);
+        } else {
+            http_response_code(405);
+            header("Allow: PATCH");
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
