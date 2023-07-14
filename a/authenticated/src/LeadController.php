@@ -53,49 +53,57 @@ class LeadController
             /*
              * Sending to CRM
              */
-            $add_lead = $this->client->set_entry($session_id, "Leads", array(
-                array("name" => 'lead_subscription_date_c', "value" => $lead_data['date'] ?? null),
-                array("name" => 'first_name', "value" => $lead_data['first_name'] ?? null),
-                array("name" => 'last_name', "value" => $lead_data['last_name'] ?? null),
-                array("name" => 'email1', "value" => $lead_data['email']),
-                array("name" => 'soi_c', "value" => true),
-                array("name" => 'doi_c', "value" => false),
-                array("name" => 'phone_c', "value" => $lead_data['phone'] ?? null),
-                array("name" => 'vertical_c', "value" => $lead_data['vertical'] ?? null),
-                array("name" => 'aff_id_c', "value" => $lead_data['aff_id'] ?? null),
-                array("name" => 'sign_up_page_url_c', "value" => $lead_data['sing_up_page_url'] ?? null),
-                array("name" => 'source_c', "value" => $lead_data['source'] ?? null),
-                array("name" => 'assigned_user_name', "value" => 'SuiteCRM-lead_Connector'),
-                array("name" => 'ip_address_c', "value" => $lead_data['ip_address'] ?? null),
-                array("name" => 'geo_c', "value" => $lead_data['geo'] ?? null),
-                array("name" => 'country_c', "value" => $lead_data['country'] ?? null),
-                array("name" => 'region_c', "value" => $lead_data['region'] ?? null),
-                array("name" => 'province_c', "value" => $lead_data['province'] ?? null),
-                array("name" => 'state_c', "value" => $lead_data['state'] ?? null),
-                array("name" => 'device_c', "value" => $lead_data['device'] ?? null),
-                array("name" => 'os_c', "value" => $lead_data['os'] ?? null),
-                array("name" => 'browser_c', "value" => $lead_data['browser'] ?? null),
-                array("name" => 'segment_identifier_c', "value" => $lead_data['auth'] ?? null),
-                array("name" => 'affsub_c', "value" => $lead_data['aff_sub'] ?? null),
-                array("name" => 'affsub2_c', "value" => $lead_data['aff_sub2'] ?? null),
-                array("name" => 'affsub3_c', "value" => $lead_data['aff_sub3'] ?? null),
-                array("name" => 'affsub4_c', "value" => $lead_data['aff_sub4'] ?? null),
-                array("name" => 'affsub5_c', "value" => $lead_data['aff_sub5'] ?? null),
-                array("name" => 'transaction_id_c', "value" => $lead_data['transaction_id'] ?? null),
-                array("name" => 'aff_click_id_c', "value" => $lead_data['aff_click_id'] ?? null),
-                array("name" => 'affiliate_id_c', "value" => $lead_data['affiliate_id'] ?? null),
-                array("name" => 'offer_id_c', "value" => $lead_data['offer_id'] ?? null),
-            ));
+            try {
+                $add_lead = $this->client->set_entry($session_id, "Leads", array(
+                    array("name" => 'lead_subscription_date_c', "value" => $lead_data['date'] ?? null),
+                    array("name" => 'first_name', "value" => $lead_data['first_name'] ?? null),
+                    array("name" => 'last_name', "value" => $lead_data['last_name'] ?? null),
+                    array("name" => 'email1', "value" => $lead_data['email']),
+                    array("name" => 'soi_c', "value" => true),
+                    array("name" => 'doi_c', "value" => false),
+                    array("name" => 'phone_c', "value" => $lead_data['phone'] ?? null),
+                    array("name" => 'vertical_c', "value" => $lead_data['vertical'] ?? null),
+                    array("name" => 'aff_id_c', "value" => $lead_data['aff_id'] ?? null),
+                    array("name" => 'sign_up_page_url_c', "value" => $lead_data['sing_up_page_url'] ?? null),
+                    array("name" => 'source_c', "value" => $lead_data['source'] ?? null),
+                    array("name" => 'assigned_user_name', "value" => 'SuiteCRM-lead_Connector'),
+                    array("name" => 'ip_address_c', "value" => $lead_data['ip_address'] ?? null),
+                    array("name" => 'geo_c', "value" => $lead_data['geo'] ?? null),
+                    array("name" => 'country_c', "value" => $lead_data['country'] ?? null),
+                    array("name" => 'region_c', "value" => $lead_data['region'] ?? null),
+                    array("name" => 'province_c', "value" => $lead_data['province'] ?? null),
+                    array("name" => 'state_c', "value" => $lead_data['state'] ?? null),
+                    array("name" => 'device_c', "value" => $lead_data['device'] ?? null),
+                    array("name" => 'os_c', "value" => $lead_data['os'] ?? null),
+                    array("name" => 'browser_c', "value" => $lead_data['browser'] ?? null),
+                    array("name" => 'segment_identifier_c', "value" => $lead_data['auth'] ?? null),
+                    array("name" => 'affsub_c', "value" => $lead_data['aff_sub'] ?? null),
+                    array("name" => 'affsub2_c', "value" => $lead_data['aff_sub2'] ?? null),
+                    array("name" => 'affsub3_c', "value" => $lead_data['aff_sub3'] ?? null),
+                    array("name" => 'affsub4_c', "value" => $lead_data['aff_sub4'] ?? null),
+                    array("name" => 'affsub5_c', "value" => $lead_data['aff_sub5'] ?? null),
+                    array("name" => 'transaction_id_c', "value" => $lead_data['transaction_id'] ?? null),
+                    array("name" => 'aff_click_id_c', "value" => $lead_data['aff_click_id'] ?? null),
+                    array("name" => 'affiliate_id_c', "value" => $lead_data['affiliate_id'] ?? null),
+                    array("name" => 'offer_id_c', "value" => $lead_data['offer_id'] ?? null),
+                ));
 
-            $this->log('CRM', $add_lead);
+                $this->log('CRM', $add_lead);
+            } catch (Exception $e) {
+                $this->log('ERROR CRM', $e->getMessage());
+            }
 
             /*
              * Sending to tracking
              */
             if (isset($lead_data['aff_sub']) && $lead_data['aff_sub']) {
-                $res_track = $this->curlRequest("GET", 'https://tracking.tripleafindings.com/aff_lsr?transaction_id='.$lead_data['aff_sub']);
+                try {
+                    $res_track = $this->curlRequest("GET", 'https://tracking.tripleafindings.com/aff_lsr?transaction_id='.$lead_data['aff_sub']);
 
-                $this->log('Tracking Send', array_merge($res_track));
+                    $this->log('Tracking Send', array_merge($res_track));
+                } catch (Exception $e) {
+                    $this->log('ERROR Tracking', $e->getMessage());
+                }
             }
 
 
@@ -159,12 +167,16 @@ class LeadController
             /*
              * Sending to Segment
              */
-            $response = $this->curlRequest("POST", 'https://api.segment.io/v1/identify',
-                $segment_request,
-                ["Authorization: Basic QklpcWJkYmJkTkl3dkRnTkNqOGRQVXpmdjA0Y3E5bnk="]
-            );
+            try {
+                $response = $this->curlRequest("POST", 'https://api.segment.io/v1/identify',
+                    $segment_request,
+                    ["Authorization: Basic QklpcWJkYmJkTkl3dkRnTkNqOGRQVXpmdjA0Y3E5bnk="]
+                );
 
-            $this->log('Segment', $response);
+                $this->log('Segment', $response);
+            } catch (Exception $e) {
+                $this->log('ERROR Segment', $e->getMessage());
+            }
 
             http_response_code(201);
         } else {

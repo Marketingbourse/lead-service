@@ -18,11 +18,7 @@ class LeadStatusController
 
     public function processLeadUpdateRequest(string $method, $id_obj = []): void
     {
-        file_put_contents($this->log_path, "Input Object --------\r\n"
-            .date('Y-m-d h:i:s')."\r\n"
-            .json_encode($id_obj, JSON_PRETTY_PRINT)."\r\n"
-            .json_encode($_SERVER, JSON_PRETTY_PRINT)
-            ."\r\n---------------------\r\n".PHP_EOL, FILE_APPEND);
+        $this->log('Input Object', array_merge($id_obj));
 
         if (!$id_obj) {
             exit('Data is empty');
@@ -41,64 +37,63 @@ class LeadStatusController
             $loginResults = $this->client->login($userAuth, $appName, $nameValueList);
             $session_id = $loginResults->id;
 
-
+            /*
+             * Sending to tracking
+             */
             if (isset($id_obj['aff_sub']) && $id_obj['aff_sub']) {
-                $aff_id = isset($id_obj['aff_id']) && $id_obj['aff_id'] ? $id_obj['aff_id'] : 1;
+                try {
+                    $aff_id = isset($id_obj['aff_id']) && $id_obj['aff_id'] ? $id_obj['aff_id'] : 1;
 
-                $url_track = 'https://tracking.tripleafindings.com/aff_goal?a=lsr&goal_name=doi&adv_id='.$aff_id.'&transaction_id='.$id_obj['aff_sub'];
-                $res_track = $this->curlRequest("GET", $url_track);
+                    $url_track = 'https://tracking.tripleafindings.com/aff_goal?a=lsr&goal_name=doi&adv_id='.$aff_id.'&transaction_id='.$id_obj['aff_sub'];
+                    $res_track = $this->curlRequest("GET", $url_track);
 
-                file_put_contents($this->log_path, "Tracking Send -----------------\r\n"
-                    .date('Y-m-d h:i:s')."\r\n".$url_track."\r\n".json_encode($res_track, JSON_PRETTY_PRINT)."\r\n---------------------\r\n".PHP_EOL, FILE_APPEND);
+                    $this->log('Tracking Send', $res_track);
+                } catch (Exception $e) {
+                    $this->log('ERROR Tracking', $e->getMessage());
+                }
             }
 
-            file_put_contents($this->log_path, "CRM --------------\r\n ".date('Y-m-d h:i:s')."\r\n"
-                .json_encode($id_obj, JSON_PRETTY_PRINT)."\r\n".PHP_EOL, FILE_APPEND);
-            //<
-$searchParameters = array(
-    'session' => $session_id,
-    'module_name' => 'Leads',
-//    'query'=>"segment_identifier_c = '".$id_obj['id']."'", //HERE SEND segment_identifier_c
-'query' => "leads.id in (SELECT eabr.bean_id FROM email_addr_bean_rel eabr JOIN email_addresses ea ON (ea.id = eabr.email_address_id) WHERE eabr.deleted=0 and ea.email_address LIKE '".$id_obj['id']."')", //FILTER LEADS BY EMAIL!!!!!
-    'order_by' => '',
-    'offset' => 0,
-    'select_fields' => ['id'],
-    'link_name_to_fields_array' => array(),
-    'max_results' => 2,
-    'deleted' => 0,
-    'Favorites' => false
-);
-$searchResult = $this->client->__soapCall('get_entry_list', $searchParameters);
-//var_dump(json_encode($searchResult));
-//$lead = $searchResult->entry_list[0]->name_value_list; // Assuming only one lead is returned
-if (!isset($searchResult->entry_list[0])) {
-    exit('Lead not found');
-}
-$lead = $searchResult->entry_list[0]->name_value_list[0];
-//Here an ARRAY of arrays!!!!!! Need to parse it!
+            $searchParameters = array(
+                'session' => $session_id,
+                'module_name' => 'Leads',
+                'query' => "leads.id in (SELECT eabr.bean_id FROM email_addr_bean_rel eabr JOIN email_addresses ea ON (ea.id = eabr.email_address_id) WHERE eabr.deleted=0 and ea.email_address LIKE '".$id_obj['id']."')", //FILTER LEADS BY EMAIL!!!!!
+                'order_by' => '',
+                'offset' => 0,
+                'select_fields' => ['id'],
+                'link_name_to_fields_array' => array(),
+                'max_results' => 2,
+                'deleted' => 0,
+                'Favorites' => false
+            );
+            $searchResult = $this->client->__soapCall('get_entry_list', $searchParameters);
+            if (!isset($searchResult->entry_list[0])) {
+                $this->log('ERROR Lead not found');
+                exit('Lead not found');
+            }
 
-//var_dump($lead->value);
+            $lead = $searchResult->entry_list[0]->name_value_list[0];
 
-$leadId = false;
-if (!empty($lead)) {
-    $leadId = $lead->value;
-    // Output the lead information
-    //echo "Lead ID: $leadId<br>";
-} else {
-    //echo "Lead not found.";
-}
+            $leadId = false;
+            if (!empty($lead)) {
+                $leadId = $lead->value;
+            }
 
-//exit($leadId);
-            
-            
-            $modify_lead = $this->client->set_entry($session_id, "Leads", array(
-                array("name" => 'id', "value" => $leadId),
-                array("name" => 'doi_c', "value" => true),
-            ));
+            /*
+             * Update CRM DOI
+             */
+            try {
+                $modify_lead = $this->client->set_entry($session_id, "Leads", array(
+                    array("name" => 'id', "value" => $leadId),
+                    array("name" => 'doi_c', "value" => true),
+                ));
+
+                $this->log('CRM', $id_obj);
+            } catch (Exception $e) {
+                $this->log('ERROR CRM', $e->getMessage());
+            }
 
             $res = $modify_lead;
             echo var_dump($res);
-            //echo var_dump($lead_obj);
             http_response_code(201);
         } else {
             http_response_code(405);
@@ -167,7 +162,20 @@ if (!empty($lead)) {
         }
         curl_close($curl);
 
-        return ($body ==null)? []: json_decode($body, true);
+        return [
+            'url' => $url,
+            'headers' => $headers,
+            'body' => $body,
+            'data' => $post_data,
+            'response' => $response,
+        ];
+    }
+
+    private function log($name, $data = []) {
+        file_put_contents($this->log_path, "$name\r\n-----------------------------------\r\n"
+            .date('Y-m-d h:i:s')
+            ."\r\n".stripslashes(json_encode($data, JSON_PRETTY_PRINT))
+            ."\r\n-----------------------------------\r\n".PHP_EOL, FILE_APPEND);
     }
 }
 
