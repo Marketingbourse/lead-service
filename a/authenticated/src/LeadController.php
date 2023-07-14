@@ -262,7 +262,7 @@ class LeadController
         }
         curl_close($curl);
 
-        return ($body ==null)? []: [
+        return [
             'url' => $url,
             'headers' => $headers,
             'body' => $body,
