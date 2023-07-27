@@ -54,6 +54,10 @@ class LeadController
              * Sending to CRM
              */
             try {
+                $emailable_response = $this->curlRequest("GET", 'https://api.emailable.com/v1/verify?email='.$lead_data['email'].'&api_key=test_ac7e973948e711e27c62');
+                $this->log('Emailable', $emailable_response);
+                $emailable_obj = json_decode($emailable_response['body']);
+
                 $add_lead = $this->client->set_entry($session_id, "Leads", array(
                     array("name" => 'lead_subscription_date_c', "value" => $lead_data['date'] ?? null),
                     array("name" => 'first_name', "value" => $lead_data['first_name'] ?? null),
@@ -86,6 +90,7 @@ class LeadController
                     array("name" => 'aff_click_id_c', "value" => $lead_data['aff_click_id'] ?? null),
                     array("name" => 'affiliate_id_c', "value" => $lead_data['affiliate_id'] ?? null),
                     array("name" => 'offer_id_c', "value" => $lead_data['offer_id'] ?? null),
+                    array("name" => 'email_state_c', "value" => $emailable_obj->state ?? null),
                 ));
 
                 $this->log('CRM', $add_lead);
@@ -157,6 +162,7 @@ class LeadController
                         'affiliate_id' => $lead_data['affiliate_id'] ?? null,
                         'offer_id' => $lead_data['offer_id'] ?? null,
                         'sub_id_1_c' => $lead_data['subid1'] ?? null,
+                        'email_state' => $emailable_obj->state ?? null,
                     ]
                 ],
                 "traits" => [
