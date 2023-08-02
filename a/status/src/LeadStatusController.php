@@ -11,31 +11,30 @@ class LeadStatusController
     private string $password_md5 = "0ced5b0fcf46076de07579c4a0046ac6";
     private SoapClient $client;
     private string $log_path = '/home/services/logs/status.log';
+    private string $session_id;
 
     public function __construct()
     {
+        $this->client = new SoapClient($this->url);
+        $this->client->__setLocation($this->url);
+        $userAuth = array(
+            'user_name' => $this->user,
+            'password' => $this->password_md5,
+            'version' => '0.1'
+        );
+        $appName = 'Connector';
+        $loginResults = $this->client->login($userAuth, $appName, array());
+        $this->session_id = $loginResults->id;
     }
 
     public function processLeadUpdateRequest(string $method, $id_obj = []): void
     {
-        $this->log('Input Object', array_merge($id_obj));
+        $this->log('Input POST Object', ($id_obj));
 
         if (!$id_obj) {
             exit('Data is empty');
         }
-
         if ($method == 'POST') {
-            $this->client = new SoapClient($this->url);
-            $this->client->__setLocation($this->url);
-            $userAuth = array(
-                'user_name' => $this->user,
-                'password' => $this->password_md5,
-                'version' => '0.1'
-            );
-            $appName = 'Connector';
-            $nameValueList = array();
-            $loginResults = $this->client->login($userAuth, $appName, $nameValueList);
-            $session_id = $loginResults->id;
 
             /*
              * Sending to tracking
@@ -53,47 +52,53 @@ class LeadStatusController
                 }
             }
 
-            $searchParameters = array(
-                'session' => $session_id,
-                'module_name' => 'Leads',
-                'query' => "leads.id in (SELECT eabr.bean_id FROM email_addr_bean_rel eabr JOIN email_addresses ea ON (ea.id = eabr.email_address_id) WHERE eabr.deleted=0 and ea.email_address LIKE '".$id_obj['id']."')", //FILTER LEADS BY EMAIL!!!!!
-                'order_by' => '',
-                'offset' => 0,
-                'select_fields' => ['id'],
-                'link_name_to_fields_array' => array(),
-                'max_results' => 2,
-                'deleted' => 0,
-                'Favorites' => false
-            );
-            $searchResult = $this->client->__soapCall('get_entry_list', $searchParameters);
-            if (!isset($searchResult->entry_list[0])) {
-                $this->log('ERROR Lead not found');
-                exit('Lead not found');
-            }
-
-            $lead = $searchResult->entry_list[0]->name_value_list[0];
-
             $leadId = false;
-            if (!empty($lead)) {
-                $leadId = $lead->value;
+            $input_id = false;
+            if (isset($id_obj['external_ids'][0]['id'])){
+                $input_id = $id_obj['external_ids'][0]['id'];
+            } else {
+                $input_id = $id_obj['userId'];
+            }
+            if ($input_id) {
+                if ($lead = $this->getLead($input_id)) {
+                    $leadId = $lead['id'];
+                } else {
+                    $this->log('ERROR LEAD NOT FOUND', $input_id);
+                }
+            } else {
+                $this->log('ERROR INPUT', $id_obj);
             }
 
             /*
              * Update CRM DOI
              */
             try {
-                $modify_lead = $this->client->set_entry($session_id, "Leads", array(
-                    array("name" => 'id', "value" => $leadId),
-                    array("name" => 'doi_c', "value" => true),
-                ));
+                if (isset($id_obj['event'])) {
+                    $field = false;
+                    if ($id_obj['event'] == 'Unsubscribed' && !$lead['email_click_unsubscribe_date_c']) {
+                        $modify_lead = $this->client->set_entry($this->session_id, "Leads", array(
+                            array("name" => 'id', "value" => $leadId),
+                            array("name" => 'journey_name_c', "value" => $id_obj['properties']['journey_name']),
+                            array("name" => 'email_click_unsubscribe_date_c', "value" => date('Y-m-d h:i:s')),
+                        ));
+                    }
+                    if ($id_obj['event'] == 'Email Link Clicked' && !$lead['email_click_doi_date_c']) {
+                        $field = 'email_click_doi_date_c';
+                        $modify_lead = $this->client->set_entry($this->session_id, "Leads", array(
+                            array("name" => 'id', "value" => $leadId),
+                            array("name" => 'doi_c', "value" => true),
+                            array("name" => 'journey_name_c', "value" => $id_obj['properties']['journey_name']),
+                            array("name" => 'link_clicked_c', "value" => $id_obj['properties']['link_clicked']),
+                            array("name" => 'email_click_doi_date_c', "value" => date('Y-m-d h:i:s')),
+                        ));
+                    }
+                }
 
                 $this->log('CRM', $id_obj);
             } catch (Exception $e) {
                 $this->log('ERROR CRM', $e->getMessage());
             }
 
-            $res = $modify_lead;
-            echo var_dump($res);
             http_response_code(201);
         } else {
             http_response_code(405);
@@ -101,6 +106,45 @@ class LeadStatusController
         }
     }
 
+    private function getLead($param)
+    {
+        $lead = false;
+        try {
+            $searchParameters = array(
+                'session' => $this->session_id,
+                'module_name' => 'Leads',
+                'query'=> "segment_identifier_c = '".$param."'",
+                'order_by' => '',
+                'offset' => 0,
+                'select_fields' => ['id', 'email_click_unsubscribe_date_c', 'email_click_doi_date_c'],
+                'link_name_to_fields_array' => array(),
+                'max_results' => 2,
+                'deleted' => 0,
+                'Favorites' => false
+            );
+
+            $searchResult = $this->client->__soapCall('get_entry_list', $searchParameters);
+
+            if (!isset($searchResult->entry_list[0])) {
+                $this->log('ERROR Lead not found');
+                exit('Lead not found');
+            }
+
+            $lead = $searchResult->entry_list[0]->name_value_list;
+        } catch (Exception $e) {
+            $this->log('ERROR CRM', $e->getMessage());
+        }
+
+        $result = [];
+        $lead = $searchResult->entry_list[0]->name_value_list;
+        if ($lead) {
+            foreach ($lead as $val) {
+                $result[$val->name] = $val->value;
+            }
+        }
+
+        return $result;
+    }
     private function curlRequest($method, $url, $post_data = [], $headers = [])
     {
         echo 'request to service';
