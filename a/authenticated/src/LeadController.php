@@ -18,23 +18,6 @@ class LeadController
     {
     }
 
-    public function processLeadRequest(string $method, $lead_data = []): void
-    {
-        $this->log('Input Object', array_merge($lead_data));
-
-        if (!$lead_data) {
-            exit('Data is empty');
-        }
-
-        if ($this->isValidToken($lead_data['auth'])){
-            $this->addLeadToSuiteCrm($lead_data ,$method);
-        } else {
-            http_response_code(401);
-            header("Please provide valid token");
-        }
-    }
-
-
     private function addLeadToSuiteCrm($lead_data, $method): void
     {
         if ($method == 'POST') {
@@ -205,6 +188,23 @@ class LeadController
         $ttl_for_token = (new DateTimeImmutable())->sub(new DateInterval('PT' . 3600 . 'S'));
         $isDateStampValid = $date_time_from_token > $ttl_for_token;
         return $isSecretValid;
+    }
+
+
+    public function processLeadRequest(string $method, $lead_data = []): void
+    {
+        $this->log('Input Object', array_merge($lead_data));
+
+        if (!$lead_data) {
+            exit('Data is empty');
+        }
+
+        if ($this->isValidToken($lead_data['auth'])){
+            $this->addLeadToSuiteCrm($lead_data ,$method);
+        } else {
+            http_response_code(401);
+            header("Please provide valid token");
+        }
     }
 
     private function curlRequest($method, $url, $post_data = [], $headers = [])
