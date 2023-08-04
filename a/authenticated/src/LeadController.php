@@ -43,8 +43,8 @@ class LeadController
 
                 $add_lead = $this->client->set_entry($session_id, "Leads", array(
                     array("name" => 'lead_subscription_date_c', "value" => $lead_data['date'] ?? null),
-                    array("name" => 'first_name', "value" => $lead_data['first_name'] ?? null),
-                    array("name" => 'last_name', "value" => $lead_data['last_name'] ?? null),
+                    array("name" => 'first_name', "value" => ucfirst($lead_data['first_name']) ?? null),
+                    array("name" => 'last_name', "value" => ucfirst($lead_data['last_name']) ?? null),
                     array("name" => 'email1', "value" => $lead_data['email']),
                     array("name" => 'soi_c', "value" => true),
                     array("name" => 'doi_c', "value" => false),
@@ -117,8 +117,8 @@ class LeadController
                 "traits" => [
                     "email" => $lead_data['email'],
                     'lead_subscription_date_c' => $lead_data['date'] ?? null,
-                    'first_name' => $lead_data['first_name'] ?? null,
-                    'last_name' => $lead_data['last_name'] ?? null,
+                    'first_name' => ucfirst($lead_data['first_name']) ?? null,
+                    'last_name' => ucfirst($lead_data['last_name']) ?? null,
                     'soi_c' => true,
                     'doi_c' => false,
                     'phone_c' => $lead_data['phone'] ?? null,
